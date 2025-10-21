@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feliz Aniversário!</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: radial-gradient(circle at top, #004466, #000814);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: "Poppins", sans-serif;
+    color: white;
+  }
+  .card {
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+  }
+  p { color: #dbeafe; margin-top: 0; }
+  .cake {
+    margin: 20px auto;
+    position: relative;
+    width: 140px;
+    height: 100px;
+  }
+  .layer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 10px;
+  }
+  .base { bottom: 0; width: 140px; height: 35px; background: #ff7b7b; }
+  .mid { bottom: 30px; width: 100px; height: 25px; background: #ffd6d6; }
+  .top { bottom: 50px; width: 70px; height: 20px; background: #fff1f1; }
+  .candle {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 30px;
+    background: #2b2b2b;
+    border-radius: 3px;
+  }
+  .flame {
+    position: absolute;
+    bottom: 98px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, #ffd166 40%, #ff7b7b 70%);
+    animation: flicker 0.15s infinite alternate;
+  }
+  @keyframes flicker {
+    from { transform: translateX(-50%) scale(1); opacity: 1; }
+    to { transform: translateX(-50%) scale(0.85); opacity: 0.8; }
+  }
+  button {
+    background: #ffd166;
+    border: none;
+    color: #222;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+    margin: 6px;
+  }
+  button:hover {
+    background: #ffbb00;
+  }
+  canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <canvas id="confetti"></canvas>
+  <h1>🎉 Feliz Aniversário, Cauã! 🎂</h1>
+  <p>Que seu dia seja repleto de alegria!</p>
+
+  <div class="cake">
+    <div class="base layer"></div>
+    <div class="mid layer"></div>
+    <div class="top layer"></div>
+    <div class="candle"></div>
+    <div class="flame" id="flame"></div>
+  </div>
+
+  <button id="playSong">🎵 Tocar música</button>
+  <button id="soprar">🕯️ Soprar velas</button>
+</div>
+
+<script>
+// 🎉 Confete animado
+const canvas = document.getElementById("confetti");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+class Confetti {
+  constructor() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height - canvas.height;
+    this.size = Math.random() * 8 + 3;
+    this.color = hsl(${Math.random()*360},80%,60%);
+    this.speed = Math.random() * 3 + 2;
+  }
+  update() { this.y += this.speed; if (this.y > canvas.height) this.y = -10; }
+  draw() { ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size); }
+}
+const confs = Array.from({length: 120}, () => new Confetti());
+function animate() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  confs.forEach(c => { c.update(); c.draw(); });
+  requestAnimationFrame(animate);
+}
+animate();
+
+// 🔥 Vela
+const flame = document.getElementById("flame");
+document.getElementById("soprar").addEventListener("click", () => {
+  flame.style.transition = "opacity 1s";
+  flame.style.opacity = "0";
+  setTimeout(() => { flame.style.display = "none"; }, 1000);
+});
+
+// 🎵 Música real de “Parabéns pra você”
+const notas = [
+  ["C4",400],["C4",400],["D4",800],["C4",800],["F4",800],["E4",1600],
+  ["C4",400],["C4",400],["D4",800],["C4",800],["G4",800],["F4",1600],
+  ["C4",400],["C4",400],["C5",800],["A4",800],["F4",800],["E4",800],["D4",1600],
+  ["Bb4",400],["Bb4",400],["A4",800],["F4",800],["G4",800],["F4",1600]
+];
+function freq(note){
+  const A4 = 440;
+  const notasRef = {"C":-9,"C#":-8,"D":-7,"D#":-6,"E":-5,"F":-4,"F#":-3,"G":-2,"G#":-1,"A":0,"A#":1,"B":2};
+  const [letra, oitava] = [note.slice(0,-1), +note.slice(-1)];
+  const n = notasRef[letra] + (oitava-4)*12;
+  return A4 * Math.pow(2, n/12);
+}
+let audioCtx;
+function tocarMusica(){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const agora = audioCtx.currentTime;
+  let t = agora;
+  const master = audioCtx.createGain();
+  master.gain.value = 0.1;
+  master.connect(audioCtx.destination);
+  notas.forEach(([nota, dur])=>{
+    const o = audioCtx.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = freq(nota);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(1, t+0.05);
+    g.gain.linearRampToValueAtTime(0, t+dur/1000-0.05);
+    o.connect(g);
+    g.connect(master);
+    o.start(t);
+    o.stop(t+dur/1000);
+    t += dur/1000;
+  });
+}
+document.getElementById("playSong").addEventListener("click", () => {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  tocarMusica();
+});
+</script>
+</body>
+</html>
